@@ -260,3 +260,18 @@
     </script>
 </body>
 </html>
+@media print {
+  body {
+    width: 58mm; /* Sesuaikan dengan lebar kertas printer, misal 58mm atau 80mm */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+  }
+  .no-print {
+    display: none; /* Menyembunyikan tombol atau menu web saat dicetak */
+  }
+}<button onclick="cetakStruk()">Cetak Struk</button>
+function cetakStruk() {
+  window.print();
+}
