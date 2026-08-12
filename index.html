@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Kasir Pro</title>
+    <title>Aplikasi Kasir Pro + Bluetooth Print</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Pengaturan khusus untuk Print Struk */
+        /* Pengaturan khusus untuk Print Struk Thermal Bluetooth/USB */
         @media print {
             body * {
                 visibility: hidden;
@@ -18,7 +18,8 @@
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 100%;
+                width: 58mm; /* Standar Lebar Kertas Thermal 58mm */
+                font-size: 10px;
                 display: block !important;
             }
         }
@@ -29,7 +30,7 @@
 <div class="container mx-auto max-w-6xl">
     <!-- Header -->
     <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
-        <h1 class="text-xl font-bold">POS Kasir & Manajemen Produk</h1>
+        <h1 class="text-xl font-bold">POS Kasir & Bluetooth Print</h1>
         <div>
             <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2 font-semibold">⚙️ Kelola Produk</button>
             <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-semibold">📜 Riwayat</button>
@@ -79,21 +80,26 @@
 <!-- Modal Riwayat -->
 <div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
     <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
-        <h2 class="text-lg font-bold mb-4">Riwayat Transaksi</h2>
+        <h2 class="text-lg font-bold mb-4">Riwayat Transaksi (Klik Cetak Ulang)</h2>
         <div id="history-list" class="overflow-y-auto flex-grow divide-y mb-4"></div>
-        <button onclick="tutupRiwayat()" class="bg-gray-300 text-gray-700 py-2 rounded font-semibold">Tutup</button>
+        <div class="flex justify-between">
+            <button onclick="hapusRiwayat()" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-red-600">Hapus Semua</button>
+            <button onclick="tutupRiwayat()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-400">Tutup</button>
+        </div>
     </div>
 </div>
 
 <!-- Area Struk Print (Tersembunyi secara normal) -->
-<div id="print-area" class="hidden p-4 max-w-[300px] mx-auto text-xs font-mono bg-white">
+<div id="print-area" class="hidden p-2 max-w-[58mm] mx-auto text-xs font-mono bg-white text-black">
     <div class="text-center mb-2">
         <p class="font-bold text-sm">TOKO KASIR KITA</p>
+        <p class="text-[10px]">Printer Bluetooth Thermal</p>
         <p class="text-[10px]" id="receipt-date"></p>
+        <p class="text-[10px]" id="receipt-id"></p>
     </div>
-    <div class="border-b border-dashed my-2"></div>
+    <div class="border-b border-dashed border-black my-1"></div>
     <div id="receipt-items"></div>
-    <div class="border-b border-dashed my-2"></div>
+    <div class="border-b border-dashed border-black my-1"></div>
     <div class="flex justify-between font-bold">
         <span>Total:</span>
         <span id="receipt-total"></span>
@@ -106,7 +112,7 @@
         <span>Kembali:</span>
         <span id="receipt-change"></span>
     </div>
-    <div class="border-b border-dashed my-2"></div>
+    <div class="border-b border-dashed border-black my-1"></div>
     <p class="text-center text-[10px]">Terima Kasih Atas Kunjungan Anda!</p>
 </div>
 
@@ -168,7 +174,7 @@
             let subtotal = i.price * i.qty;
             total += subtotal;
             return `
-                <div py-2 flex justify-between items-center text-sm py-2">
+                <div class="flex justify-between items-center text-sm py-2">
                     <div>
                         <p class="font-semibold">${i.name}</p>
                         <p class="text-xs text-gray-500">Rp ${i.price.toLocaleString('id-ID')} x ${i.qty}</p>
@@ -205,32 +211,39 @@
         if(bayar < total) return alert("Uang pembayaran kurang!");
 
         const kembalian = bayar - total;
+        const trxId = 'TRX-' + Date.now();
         const tanggal = new Date().toLocaleString('id-ID');
+
+        const transaksiBaru = { id: trxId, date: tanggal, total, payment: bayar, change: kembalian, items: [...cart] };
 
         // Simpan ke Riwayat LocalStorage
         let history = JSON.parse(localStorage.getItem('transactions')) || [];
-        history.unshift({ date: tanggal, total, items: [...cart] });
+        history.unshift(transaksiBaru);
         localStorage.setItem('transactions', JSON.stringify(history));
 
-        // Set Data untuk Area Print
-        document.getElementById('receipt-date').innerText = tanggal;
-        document.getElementById('receipt-items').innerHTML = cart.map(i => `
-            <div class="flex justify-between">
-                <span>${i.name} (${i.qty}x)</span>
-                <span>Rp ${(i.price * i.qty).toLocaleString('id-ID')}</span>
-            </div>
-        `).join('');
-        document.getElementById('receipt-total').innerText = 'Rp ' + total.toLocaleString('id-ID');
-        document.getElementById('receipt-pay').innerText = 'Rp ' + bayar.toLocaleString('id-ID');
-        document.getElementById('receipt-change').innerText = 'Rp ' + kembalian.toLocaleString('id-ID');
-
-        // Panggil Print Browser
-        window.print();
+        // Cetak Struk
+        cetakStruk(transaksiBaru);
 
         // Reset Keranjang & Input Pembayaran
         cart = [];
         document.getElementById('payment-amount').value = '';
         renderCart();
+    }
+
+    function cetakStruk(trx) {
+        document.getElementById('receipt-date').innerText = trx.date;
+        document.getElementById('receipt-id').innerText = trx.id;
+        document.getElementById('receipt-items').innerHTML = trx.items.map(i => `
+            <div class="flex justify-between">
+                <span>${i.name} (${i.qty}x)</span>
+                <span>Rp ${(i.price * i.qty).toLocaleString('id-ID')}</span>
+            </div>
+        `).join('');
+        document.getElementById('receipt-total').innerText = 'Rp ' + trx.total.toLocaleString('id-ID');
+        document.getElementById('receipt-pay').innerText = 'Rp ' + trx.payment.toLocaleString('id-ID');
+        document.getElementById('receipt-change').innerText = 'Rp ' + trx.change.toLocaleString('id-ID');
+
+        window.print();
     }
 
     function bukaRiwayat() {
@@ -240,15 +253,18 @@
         if(history.length === 0) {
             list.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm">Belum ada riwayat transaksi.</p>`;
         } else {
-            list.innerHTML = history.map(h => {
+            list.innerHTML = history.map((h, index) => {
                 let detailItem = h.items.map(i => `${i.name} (${i.qty}x)`).join(', ');
                 return `
-                    <div class="py-2 text-sm">
-                        <div class="flex justify-between font-bold">
-                            <span>${h.date}</span>
-                            <span class="text-blue-600">Rp ${h.total.toLocaleString('id-ID')}</span>
+                    <div class="py-3 text-sm flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-gray-800">${h.id} - <span class="text-blue-600">Rp ${h.total.toLocaleString('id-ID')}</span></div>
+                            <p class="text-xs text-gray-500">${h.date}</p>
+                            <p class="text-xs text-gray-600 mt-0.5">Item: ${detailItem}</p>
                         </div>
-                        <p class="text-xs text-gray-500">Item: ${detailItem}</p>
+                        <button onclick="cetakUlang(${index})" class="bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-600 shrink-0 ml-2">
+                            🖨️ Cetak Ulang
+                        </button>
                     </div>
                 `;
             }).join('');
@@ -256,11 +272,25 @@
         document.getElementById('modal-riwayat').classList.remove('hidden');
     }
 
+    function cetakUlang(index) {
+        const history = JSON.parse(localStorage.getItem('transactions')) || [];
+        const trx = history[index];
+        if (trx) {
+            cetakStruk(trx);
+        }
+    }
+
     function tutupRiwayat() {
         document.getElementById('modal-riwayat').classList.add('hidden');
     }
 
-    // Jalankan saat pertama kali buka
+    function hapusRiwayat() {
+        if(confirm("Yakin ingin menghapus seluruh riwayat transaksi?")) {
+            localStorage.removeItem('transactions');
+            bukaRiwayat();
+        }
+    }
+
     renderProducts();
 </script>
 </body>
