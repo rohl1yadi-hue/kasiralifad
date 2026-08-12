@@ -3,34 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Kasir Pro + Bluetooth Print</title>
+    <title>Aplikasi Kasir Thermal Bluetooth</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Pengaturan khusus untuk Print Struk Thermal Bluetooth/USB */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            #print-area, #print-area * {
-                visibility: visible;
-            }
-            #print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 58mm; /* Standar Lebar Kertas Thermal 58mm */
-                font-size: 10px;
-                display: block !important;
-            }
-        }
-    </style>
 </head>
 <body class="bg-gray-100 p-4">
 
 <div class="container mx-auto max-w-6xl">
     <!-- Header -->
     <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
-        <h1 class="text-xl font-bold">POS Kasir & Bluetooth Print</h1>
+        <h1 class="text-xl font-bold">POS Kasir Thermal Bluetooth</h1>
         <div>
             <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2 font-semibold">⚙️ Kelola Produk</button>
             <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-semibold">📜 Riwayat</button>
@@ -71,7 +52,14 @@
                 </div>
                 <input type="number" id="payment-amount" placeholder="Bayar (Rp)" class="w-full border p-2 mb-2 rounded" oninput="hitungKembalian()">
                 <div id="change-amount" class="mb-4 font-semibold text-sm text-gray-600">Kembali: Rp 0</div>
-                <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">Bayar & Print</button>
+                
+                <!-- Tombol Aksi Pembayaran -->
+                <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 mb-2">
+                    Bayar & Print (Browser/RawBT)
+                </button>
+                <button onclick="hubungkanBluetoothDirect()" class="w-full bg-blue-500 text-white py-1.5 rounded text-xs font-semibold hover:bg-blue-600">
+                    🔗 Hubungkan Bluetooth (Web BT)
+                </button>
             </div>
         </div>
     </div>
@@ -80,7 +68,7 @@
 <!-- Modal Riwayat -->
 <div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
     <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
-        <h2 class="text-lg font-bold mb-4">Riwayat Transaksi (Klik Cetak Ulang)</h2>
+        <h2 class="text-lg font-bold mb-4">Riwayat Transaksi</h2>
         <div id="history-list" class="overflow-y-auto flex-grow divide-y mb-4"></div>
         <div class="flex justify-between">
             <button onclick="hapusRiwayat()" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-red-600">Hapus Semua</button>
@@ -89,11 +77,10 @@
     </div>
 </div>
 
-<!-- Area Struk Print (Tersembunyi secara normal) -->
+<!-- Area Struk Tersembunyi untuk Print Standar / RawBT -->
 <div id="print-area" class="hidden p-2 max-w-[58mm] mx-auto text-xs font-mono bg-white text-black">
     <div class="text-center mb-2">
         <p class="font-bold text-sm">TOKO KASIR KITA</p>
-        <p class="text-[10px]">Printer Bluetooth Thermal</p>
         <p class="text-[10px]" id="receipt-date"></p>
         <p class="text-[10px]" id="receipt-id"></p>
     </div>
@@ -113,7 +100,7 @@
         <span id="receipt-change"></span>
     </div>
     <div class="border-b border-dashed border-black my-1"></div>
-    <p class="text-center text-[10px]">Terima Kasih Atas Kunjungan Anda!</p>
+    <p class="text-center text-[10px]">Terima Kasih!</p>
 </div>
 
 <script>
@@ -123,6 +110,8 @@
     ];
 
     let cart = [];
+    let bluetoothDevice = null;
+    let bluetoothCharacteristic = null;
 
     function tambahProduk() {
         const name = document.getElementById('prod-name').value;
@@ -148,8 +137,7 @@
     }
 
     function toggleSection(id) {
-        const el = document.getElementById(id + '-section');
-        el.classList.toggle('hidden');
+        document.getElementById(id + '-section').classList.toggle('hidden');
     }
 
     function addToCart(id) {
@@ -202,6 +190,26 @@
         }
     }
 
+    // Fungsi Koneksi Bluetooth Langsung (Web Bluetooth)
+    async function hubungkanBluetoothDirect() {
+        try {
+            if (!navigator.bluetooth) {
+                alert("Browser Anda tidak mendukung Web Bluetooth. Gunakan Chrome di Android/PC.");
+                return;
+            }
+            alert("Mencari perangkat printer Bluetooth... Pastikan Bluetooth aktif.");
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
+            });
+            const server = await bluetoothDevice.gatt.connect();
+            alert("Berhasil terhubung ke printer: " + bluetoothDevice.name);
+        } catch (error) {
+            console.log("Koneksi Bluetooth gagal: ", error);
+            alert("Gagal terhubung ke printer Bluetooth. Lihat panduan di bawah.");
+        }
+    }
+
     function prosesTransaksi() {
         if(cart.length === 0) return alert("Keranjang masih kosong!");
         
@@ -216,15 +224,13 @@
 
         const transaksiBaru = { id: trxId, date: tanggal, total, payment: bayar, change: kembalian, items: [...cart] };
 
-        // Simpan ke Riwayat LocalStorage
         let history = JSON.parse(localStorage.getItem('transactions')) || [];
         history.unshift(transaksiBaru);
         localStorage.setItem('transactions', JSON.stringify(history));
 
-        // Cetak Struk
+        // Cetak Struk menggunakan Print Preview Browser / Aplikasi Perantara
         cetakStruk(transaksiBaru);
 
-        // Reset Keranjang & Input Pembayaran
         cart = [];
         document.getElementById('payment-amount').value = '';
         renderCart();
@@ -243,6 +249,7 @@
         document.getElementById('receipt-pay').innerText = 'Rp ' + trx.payment.toLocaleString('id-ID');
         document.getElementById('receipt-change').innerText = 'Rp ' + trx.change.toLocaleString('id-ID');
 
+        // Pemicu cetak standar browser
         window.print();
     }
 
@@ -254,7 +261,7 @@
             list.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm">Belum ada riwayat transaksi.</p>`;
         } else {
             list.innerHTML = history.map((h, index) => {
-                let detailItem = h.items.map(i => `${i.name} (${i.qty}x)`).join(', ');
+                let detailItem = h.items.map(i => `${i.name} (${i.qty}x)`).join(',พิมพ์').replace(/พิมพ์/g, ', ');
                 return `
                     <div class="py-3 text-sm flex justify-between items-center">
                         <div>
@@ -273,11 +280,9 @@
     }
 
     function cetakUlang(index) {
-        const history = JSON.parse(localStorage.getItem('transactions')) || [];
+        const history = JSON.parse(localStorage.getItem('transactions')) || {/* ... */};
         const trx = history[index];
-        if (trx) {
-            cetakStruk(trx);
-        }
+        if (trx) cetakStruk(trx);
     }
 
     function tutupRiwayat() {
