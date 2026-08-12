@@ -3,39 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Kasir Thermal Bluetooth Pro</title>
+    <title>Aplikasi Kasir + Pembukuan Kas & Laba</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
 
 <div class="container mx-auto max-w-6xl">
     <!-- Header -->
-    <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
-        <h1 class="text-xl font-bold">POS Kasir Thermal Bluetooth</h1>
-        <div>
-            <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2 font-semibold">⚙️ Kelola Produk</button>
+    <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center flex-wrap gap-2">
+        <h1 class="text-xl font-bold">POS Kasir & Pembukuan</h1>
+        <div class="flex gap-2">
+            <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-semibold">⚙️ Kelola Produk</button>
+            <button onclick="bukaLaporan()" class="bg-yellow-400 text-gray-900 px-3 py-1 rounded text-sm font-bold">📊 Laporan Kas & Laba</button>
             <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-semibold">📜 Riwayat</button>
         </div>
     </header>
 
-    <!-- Admin Section (Tambah & Hapus Produk) -->
+    <!-- Admin Section (Tambah & Hapus Produk + Modal) -->
     <div id="admin-section" class="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
-        <h2 class="text-lg font-bold mb-4">Manajemen Produk</h2>
+        <h2 class="text-lg font-bold mb-4">Manajemen Produk & Modal</h2>
         
         <!-- Form Tambah -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <input type="text" id="prod-name" placeholder="Nama Produk" class="border p-2 rounded">
-            <input type="number" id="prod-price" placeholder="Harga (Angka Saja)" class="border p-2 rounded">
+            <input type="number" id="prod-buy-price" placeholder="Harga Modal (Beli)" class="border p-2 rounded">
+            <input type="number" id="prod-price" placeholder="Harga Jual" class="border p-2 rounded">
             <button onclick="tambahProduk()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold">Simpan Produk</button>
         </div>
 
         <hr class="mb-4">
 
-        <!-- Daftar Produk untuk Dihapus -->
         <h3 class="text-md font-semibold mb-2">Daftar Produk Saat Ini:</h3>
-        <div id="admin-product-list" class="divide-y max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
-            <!-- List produk untuk manajemen muncul di sini -->
-        </div>
+        <div id="admin-product-list" class="divide-y max-h-40 overflow-y-auto border rounded p-2 bg-gray-50"></div>
     </div>
 
     <!-- Main Content -->
@@ -71,6 +70,32 @@
     </div>
 </div>
 
+<!-- Modal Laporan Kas & Laba -->
+<div id="modal-laporan" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
+    <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
+        <h2 class="text-lg font-bold mb-4 text-gray-800">📊 Laporan Pembukuan Kas & Laba</h2>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p class="text-xs text-blue-600 font-semibold">Total Pendapatan (Omset)</p>
+                <p class="text-lg font-bold text-blue-800" id="lap-omset">Rp 0</p>
+            </div>
+            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                <p class="text-xs text-green-600 font-semibold">Total Laba Bersih</p>
+                <p class="text-lg font-bold text-green-800" id="lap-laba">Rp 0</p>
+            </div>
+        </div>
+
+        <h3 class="text-sm font-bold mb-2 text-gray-700">Rincian Kas Masuk Berdasarkan Transaksi:</h3>
+        <div id="laporan-list" class="overflow-y-auto flex-grow divide-y border rounded p-2 mb-4 text-sm bg-gray-50"></div>
+        
+        <div class="flex justify-between">
+            <button onclick="resetPembukuan()" class="bg-red-500 text-white px-4 py-2 rounded text-sm font-semibold hover:bg-red-600">Reset Pembukuan</button>
+            <button onclick="tutupLaporan()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-semibold hover:bg-gray-400">Tutup</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Riwayat -->
 <div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
     <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
@@ -85,26 +110,29 @@
 
 <script>
     let products = JSON.parse(localStorage.getItem('myProducts')) || [
-        { id: 1, name: "Kopi Hitam", price: 10000 },
-        { id: 2, name: "Mie Goreng", price: 15000 }
+        { id: 1, name: "Kopi Hitam", buyPrice: 6000, price: 10000 },
+        { id: 2, name: "Mie Goreng", buyPrice: 10000, price: 15000 }
     ];
 
     let cart = [];
 
     function tambahProduk() {
         const name = document.getElementById('prod-name').value;
+        const buyPrice = parseInt(document.getElementById('prod-buy-price').value) || 0;
         const price = parseInt(document.getElementById('prod-price').value);
-        if(!name || !price) return alert("Isi nama dan harga produk dengan benar!");
         
-        products.push({ id: Date.now(), name, price });
+        if(!name || !price) return alert("Nama dan Harga Jual wajib diisi!");
+        
+        products.push({ id: Date.now(), name, buyPrice, price });
         localStorage.setItem('myProducts', JSON.stringify(products));
         renderProducts();
+        
         document.getElementById('prod-name').value = '';
+        document.getElementById('prod-buy-price').value = '';
         document.getElementById('prod-price').value = '';
         alert("Produk berhasil ditambahkan!");
     }
 
-    // Fungsi Hapus Produk
     function hapusProduk(id) {
         if(confirm("Yakin ingin menghapus produk ini?")) {
             products = products.filter(p => p.id !== id);
@@ -117,7 +145,6 @@
         const list = document.getElementById('product-list');
         const adminList = document.getElementById('admin-product-list');
         
-        // Render menu kasir utama
         list.innerHTML = products.map(p => `
             <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50 transition bg-white shadow-sm flex flex-col justify-between">
                 <p class="font-bold text-gray-800">${p.name}</p>
@@ -125,14 +152,12 @@
             </div>
         `).join('');
 
-        // Render daftar di menu kelola produk (admin)
         if(products.length === 0) {
             adminList.innerHTML = `<p class="text-gray-400 text-sm py-2 text-center">Belum ada produk.</p>`;
         } else {
             adminList.innerHTML = products.map(p => `
-                py-2 flex justify-between items-center text-sm py-2
                 <div class="flex justify-between items-center text-sm py-2">
-                    <span><b>${p.name}</b> - Rp ${p.price.toLocaleString('id-ID')}</span>
+                    <span><b>${p.name}</b> (Modal: Rp ${(p.buyPrice||0).toLocaleString('id-ID')} | Jual: Rp ${p.price.toLocaleString('id-ID')})</span>
                     <button onclick="hapusProduk(${p.id})" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-bold hover:bg-red-600">Hapus</button>
                 </div>
             `).join('');
@@ -142,9 +167,7 @@
     function toggleSection(id) {
         const section = document.getElementById(id + '-section');
         section.classList.toggle('hidden');
-        if(!section.classList.contains('hidden')) {
-            renderProducts(); // Refresh list admin saat dibuka
-        }
+        if(!section.classList.contains('hidden')) renderProducts();
     }
 
     function addToCart(id) {
@@ -201,15 +224,25 @@
         if(cart.length === 0) return alert("Keranjang masih kosong!");
         
         const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-        const bayar = parseInt(document.getElementById('payment-amount').value) || 0;
+        let totalModal = cart.reduce((s, i) => s + ((i.buyPrice || 0) * i.qty), 0);
+        let labaBersih = total - totalModal;
 
+        const bayar = parseInt(document.getElementById('payment-amount').value) || 0;
         if(bayar < total) return alert("Uang pembayaran kurang!");
 
         const kembalian = bayar - total;
         const trxId = 'TRX-' + Date.now();
         const tanggal = new Date().toLocaleString('id-ID');
 
-        const transaksiBaru = { id: trxId, date: tanggal, total, payment: bayar, change: kembalian, items: [...cart] };
+        const transaksiBaru = { 
+            id: trxId, 
+            date: tanggal, 
+            total, 
+            laba: labaBersih,
+            payment: bayar, 
+            change: kembalian, 
+            items: [...cart] 
+        };
 
         let history = JSON.parse(localStorage.getItem('transactions')) || [];
         history.unshift(transaksiBaru);
@@ -246,6 +279,47 @@
 
         let base64Struk = btoa(unescape(encodeURIComponent(struk)));
         window.location.href = "rawbt:base64," + base64Struk;
+    }
+
+    function bukaLaporan() {
+        const history = JSON.parse(localStorage.getItem('transactions')) || [];
+        let totalOmset = 0;
+        let totalLaba = 0;
+        const laporanList = document.getElementById('laporan-list');
+
+        if(history.length === 0) {
+            laporanList.innerHTML = `<p class="text-gray-400 text-center py-2 text-xs">Belum ada data kas masuk.</p>`;
+        } else {
+            laporanList.innerHTML = history.map(h => {
+                totalOmset += h.total;
+                let labaTrx = h.laba !== undefined ? h.laba : 0; // fallback jika data lama belum ada laba
+                totalLaba += labaTrx;
+                return `
+                    <div class="py-2 text-xs flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-gray-800">${h.id}</span> (${h.date})
+                            <br><span class="text-green-600 font-semibold">Kas Masuk: Rp ${h.total.toLocaleString('id-ID')}</span>
+                        </div>
+                        <span class="text-blue-600 font-bold">Laba: Rp ${labaTrx.toLocaleString('id-ID')}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('lap-omset').innerText = 'Rp ' + totalOmset.toLocaleString('id-ID');
+        document.getElementById('lap-laba').innerText = 'Rp ' + totalLaba.toLocaleString('id-ID');
+        document.getElementById('modal-laporan').classList.remove('hidden');
+    }
+
+    function tutupLaporan() {
+        document.getElementById('modal-laporan').classList.add('hidden');
+    }
+
+    function resetPembukuan() {
+        if(confirm("Yakin ingin mereset seluruh data transaksi dan pembukuan kas?")) {
+            localStorage.removeItem('transactions');
+            bukaLaporan();
+        }
     }
 
     function bukaRiwayat() {
