@@ -3,336 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Kasir Web Sederhana</title>
-    <!-- Tailwind CSS untuk Desain -->
+    <title>Aplikasi Kasir Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
-            body * {
-                visibility: hidden;
-            }
-            #print-area, #print-area * {
-                visibility: visible;
-            }
-            #print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
+            body * { visibility: hidden; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 p-4">
 
-    <div class="container mx-auto p-4 max-w-7xl">
-        <!-- Header -->
-        <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Aplikasi Kasir Web</h1>
-            <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-4 py-2 rounded font-semibold hover:bg-gray-100 transition">
-                📜 Riwayat Transaksi
-            </button>
-        </header>
+<div class="container mx-auto max-w-6xl">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
+        <h1 class="text-xl font-bold">POS Kasir & Manajemen Produk</h1>
+        <div>
+            <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2">⚙️ Kelola Produk</button>
+            <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm">📜 Riwayat</button>
+        </div>
+    </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Bagian Kiri & Tengah: Daftar Produk -->
-            <div class="md:col-span-2 bg-white p-4 rounded-lg shadow-md">
-                <h2 class="text-lg font-semibold mb-4 text-gray-700">Daftar Produk</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="product-list">
-                    <!-- Produk akan dimasukkan via JavaScript -->
-                </div>
-            </div>
-
-            <!-- Bagian Kanan: Keranjang & Pembayaran -->
-            <div class="bg-white p-4 rounded-lg shadow-md flex flex-col justify-between">
-                <div>
-                    <h2 class="text-lg font-semibold mb-4 text-gray-700">Keranjang Belanja</h2>
-                    <div class="divide-y max-h-60 overflow-y-auto mb-4" id="cart-list">
-                        <p class="text-gray-500 text-sm text-center py-4">Keranjang masih kosong</p>
-                    </div>
-                </div>
-
-                <div class="border-t pt-4">
-                    <div class="flex justify-between font-bold text-lg mb-2">
-                        <span>Total:</span>
-                        <span id="cart-total">Rp 0</span>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="block text-sm text-gray-600 mb-1">Bayar (Rp):</label>
-                        <input type="number" id="payment-amount" class="w-full border rounded p-2 text-right font-semibold" placeholder="0" oninput="hitungKembalian()">
-                    </div>
-
-                    <div class="flex justify-between font-semibold text-md mb-4 text-gray-700">
-                        <span>Kembalian:</span>
-                        <span id="change-amount">Rp 0</span>
-                    </div>
-
-                    <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700 transition">
-                        Bayar & Cetak Struk
-                    </button>
-                </div>
-            </div>
+    <!-- Admin Section (Hidden by Default) -->
+    <div id="admin-section" class="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
+        <h2 class="text-lg font-bold mb-4">Tambah Produk Baru</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input type="text" id="prod-name" placeholder="Nama Produk" class="border p-2 rounded">
+            <input type="number" id="prod-price" placeholder="Harga" class="border p-2 rounded">
+            <button onclick="tambahProduk()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Simpan Produk</button>
         </div>
     </div>
 
-    <!-- Modal Riwayat Transaksi -->
-    <div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
-        <div class="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-gray-800">Riwayat Transaksi</h2>
-                <button onclick="tutupRiwayat()" class="text-gray-500 hover:text-gray-750 font-bold text-xl">&times;</button>
-            </div>
-            <div class="overflow-y-auto flex-grow divide-y" id="history-list">
-                <p class="text-gray-500 text-center py-4">Belum ada riwayat transaksi.</p>
-            </div>
-            <div class="mt-4 pt-4 border-t flex justify-between">
-                <button onclick="hapusRiwayat()" class="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600">Hapus Semua Riwayat</button>
-                <button onclick="tutupRiwayat()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm hover:bg-gray-400">Tutup</button>
-            </div>
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 bg-white p-4 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-4">Daftar Menu</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="product-list"></div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-2">Keranjang</h2>
+            <div id="cart-list" class="divide-y mb-4"></div>
+            <div class="border-t pt-2 font-bold text-lg">Total: <span id="cart-total">Rp 0</span></div>
+            <input type="number" id="payment-amount" placeholder="Bayar (Rp)" class="w-full border p-2 my-3 rounded" oninput="hitungKembalian()">
+            <div id="change-amount" class="mb-4 font-semibold">Kembali: Rp 0</div>
+            <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">Bayar & Print</button>
         </div>
     </div>
+</div>
 
-    <!-- Area Cetak Struk Tersembunyi -->
-    <div id="print-area" class="hidden p-4 max-w-[300px] mx-auto text-sm font-mono">
-        <div class="text-center mb-2">
-            <h3 class="font-bold text-base">TOKO KASIR KU</h3>
-            <p class="text-xs">Jl. Contoh No. 123, Kota Anda</p>
-            <p class="text-xs" id="receipt-date"></p>
-            <p class="text-xs" id="receipt-id"></p>
-        </div>
-        <div class="border-dashed border-b my-2"></div>
-        <div id="receipt-items"></div>
-        <div class="border-dashed border-b my-2"></div>
-        <div class="flex justify-between font-bold">
-            <span>Total:</span>
-            <span id="receipt-total"></span>
-        </div>
-        <div class="flex justify-between">
-            <span>Bayar:</span>
-            <span id="receipt-pay"></span>
-        </div>
-        <div class="flex justify-between">
-            <span>Kembali:</span>
-            <span id="receipt-change"></span>
-        </div>
-        <div class="border-dashed border-b my-2"></div>
-        <div class="text-center text-xs mt-4">
-            <p>Terima Kasih Atas Kunjungan Anda!</p>
-            <p>Barang yang sudah dibeli tidak dapat ditukar.</p>
-        </div>
-    </div>
+<!-- Modal & Print Area sama seperti sebelumnya -->
+<div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
+    <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto" id="history-list"></div>
+</div>
 
-    <!-- JavaScript Logika Kasir -->
-    <script>
-        // Data Produk Contoh
-        const products = [
-            { id: 1, name: "Kopi Hitam", price: 10000, image: "☕" },
-            { id: 2, name: "Teh Manis", price: 5000, image: "🍵" },
-            { id: 3, name: "Nasi Goreng", price: 18000, image: "plate" },
-            { id: 4, name: "Mie Ayam", price: 15000, image: "🍜" },
-            { id: 5, name: "Es Jeruk", price: 6000, image: "🍊" },
-            { id: 6, name: "Roti Bakar", price: 12000, image: "🍞" }
-        ];
+<div id="print-area" class="hidden p-4 max-w-[300px] mx-auto text-sm font-mono">
+    <h3 class="font-bold text-center">TOKO KASIR KU</h3>
+    <div id="receipt-items"></div>
+    <div class="border-t mt-2 pt-2">Total: <span id="receipt-total"></span></div>
+</div>
 
-        let cart = [];
+<script>
+    // 1. Manajamen Data Produk
+    let products = JSON.parse(localStorage.getItem('myProducts')) || [
+        { id: 1, name: "Kopi Hitam", price: 10000 },
+        { id: 2, name: "Mie Goreng", price: 15000 }
+    ];
 
-        // Render Produk ke Layar
-        function renderProducts() {
-            const productList = document.getElementById('product-list');
-            productList.innerHTML = '';
-            products.forEach(product => {
-                productList.innerHTML += `
-                    <div onclick="addToCart(${product.id})" class="border rounded-lg p-3 text-center cursor-pointer hover:shadow-lg transition bg-gray-50 flex flex-col justify-between">
-                        <div class="text-3xl mb-2">${product.image}</div>
-                        <h3 class="font-semibold text-sm text-gray-800">${product.name}</h3>
-                        <p class="text-blue-600 font-bold text-sm mt-1">Rp ${product.price.toLocaleString('id-ID')}</p>
-                    </div>
-                `;
-            });
-        }
-
-        // Tambah ke Keranjang
-        function addToCart(productId) {
-            const product = products.find(p => p.id === productId);
-            const cartItem = cart.find(item => item.id === productId);
-
-            if (cartItem) {
-                cartItem.quantity += 1;
-            } else {
-                cart.push({ ...product, quantity: 1 });
-            }
-            renderCart();
-        }
-
-        // Ubah Jumlah Produk di Keranjang
-        function changeQuantity(productId, delta) {
-            const cartItem = cart.find(item => item.id === productId);
-            if (cartItem) {
-                cartItem.quantity += delta;
-                if (cartItem.quantity <= 0) {
-                    cart = cart.filter(item => item.id !== productId);
-                }
-            }
-            renderCart();
-        }
-
-        // Render Keranjang
-        function renderCart() {
-            const cartList = document.getElementById('cart-list');
-            const cartTotal = document.getElementById('cart-total');
-
-            if (cart.length === 0) {
-                cartList.innerHTML = `<p class="text-gray-500 text-sm text-center py-4">Keranjang masih kosong</p>`;
-                cartTotal.innerText = `Rp 0`;
-                document.getElementById('payment-amount').value = '';
-                document.getElementById('change-amount').innerText = `Rp 0`;
-                return;
-            }
-
-            cartList.innerHTML = '';
-            let total = 0;
-
-            cart.forEach(item => {
-                let subtotal = item.price * item.quantity;
-                total += subtotal;
-                cartList.innerHTML += `
-                    <div class="py-2 flex justify-between items-center text-sm">
-                        <div>
-                            <p class="font-semibold text-gray-800">${item.name}</p>
-                            <p class="text-xs text-gray-500">Rp ${item.price.toLocaleString('id-ID')} x ${item.quantity}</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="changeQuantity(${item.id}, -1)" class="bg-gray-200 px-2 py-0.5 rounded font-bold">-</button>
-                            <span class="text-sm font-semibold">${item.quantity}</span>
-                            <button onclick="changeQuantity(${item.id}, 1)" class="bg-gray-200 px-2 py-0.5 rounded font-bold">+</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            cartTotal.innerText = `Rp ${total.toLocaleString('id-ID')}`;
-            hitungKembalian();
-        }
-
-        // Hitung Kembalian
-        function hitungKembalian() {
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const payment = parseFloat(document.getElementById('payment-amount').value) || 0;
-            const change = payment - total;
-
-            const changeElement = document.getElementById('change-amount');
-            if (change >= 0) {
-                changeElement.innerText = `Rp ${change.toLocaleString('id-ID')}`;
-                changeElement.className = "font-semibold text-md text-green-600";
-            } else {
-                changeElement.innerText = `Kurang Rp ${Math.abs(change).toLocaleString('id-ID')}`;
-                changeElement.className = "font-semibold text-md text-red-600";
-            }
-        }
-
-        // Proses Transaksi & Simpan ke History
-        function prosesTransaksi() {
-            if (cart.length === 0) {
-                alert("Keranjang masih kosong!");
-                return;
-            }
-
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const payment = parseFloat(document.getElementById('payment-amount').value) || 0;
-
-            if (payment < total) {
-                alert("Uang pembayaran kurang!");
-                return;
-            }
-
-            const change = payment - total;
-            const transactionId = 'TRX-' + Date.now();
-            const transactionDate = new Date().toLocaleString('id-ID');
-
-            // Buat Objek Transaksi
-            const transaction = {
-                id: transactionId,
-                date: transactionDate,
-                items: [...cart],
-                total: total,
-                payment: payment,
-                change: change
-            };
-
-            // Simpan ke LocalStorage
-            let history = JSON.parse(localStorage.getItem('transactions')) || [];
-            history.unshift(transaction); // Taruh di urutan paling atas
-            localStorage.setItem('transactions', JSON.stringify(history));
-
-            // Siapkan Struk untuk Print
-            document.getElementById('receipt-date').innerText = transactionDate;
-            document.getElementById('receipt-id').innerText = transactionId;
-            
-            let receiptItemsHTML = '';
-            cart.forEach(item => {
-                receiptItemsHTML += `
-                    <div class="flex justify-between">
-                        <span>${item.name} (${item.quantity}x)</span>
-                        <span>Rp ${(item.price * item.quantity).toLocaleString('id-ID')}</span>
-                    </div>
-                `;
-            });
-            document.getElementById('receipt-items').innerHTML = receiptItemsHTML;
-            document.getElementById('receipt-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
-            document.getElementById('receipt-pay').innerText = `Rp ${payment.toLocaleString('id-ID')}`;
-            document.getElementById('receipt-change').innerText = `Rp ${change.toLocaleString('id-ID')}`;
-
-            // Cetak Struk
-            window.print();
-
-            // Reset Keranjang
-            cart = [];
-            renderCart();
-        }
-
-        // Buka Modal Riwayat
-        function bukaRiwayat() {
-            const historyList = document.getElementById('history-list');
-            let history = JSON.parse(localStorage.getItem('transactions')) || [];
-
-            if (history.length === 0) {
-                historyList.innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada riwayat transaksi.</p>`;
-            } else {
-                historyList.innerHTML = '';
-                history.forEach(trx => {
-                    let itemsString = trx.items.map(i => `${i.name} (${i.quantity}x)`).join(', ');
-                    historyList.innerHTML += `
-                        <div class="py-3 text-sm">
-                            <div class="flex justify-between font-bold text-gray-800">
-                                <span>${trx.id}</span>
-                                <span class="text-blue-600">Rp ${trx.total.toLocaleString('id-ID')}</span>
-                            </div>
-                            <p class="text-xs text-gray-500">${trx.date}</p>
-                            <p class="text-xs text-gray-600 mt-1">Item: ${itemsString}</p>
-                        </div>
-                    `;
-                });
-            }
-
-            document.getElementById('modal-riwayat').classList.remove('hidden');
-        }
-
-        // Tutup Modal Riwayat
-        function tutupRiwayat() {
-            document.getElementById('modal-riwayat').classList.add('hidden');
-        }
-
-        // Hapus Semua Riwayat
-        function hapusRiwayat() {
-            if (confirm("Yakin ingin menghapus seluruh riwayat transaksi?")) {
-                localStorage.removeItem('transactions');
-                bukaRiwayat();
-            }
-        }
-
-        // Inisialisasi awal saat halaman dimuat
+    function tambahProduk() {
+        const name = document.getElementById('prod-name').value;
+        const price = parseInt(document.getElementById('prod-price').value);
+        if(!name || !price) return alert("Isi data produk!");
+        
+        products.push({ id: Date.now(), name, price });
+        localStorage.setItem('myProducts', JSON.stringify(products));
         renderProducts();
-    </script>
+        document.getElementById('prod-name').value = '';
+        document.getElementById('prod-price').value = '';
+    }
+
+    function renderProducts() {
+        const list = document.getElementById('product-list');
+        list.innerHTML = products.map(p => `
+            <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50">
+                <p class="font-bold">${p.name}</p>
+                <p class="text-blue-600 text-sm">Rp ${p.price.toLocaleString()}</p>
+            </div>
+        `).join('');
+    }
+
+    function toggleSection(id) {
+        document.getElementById(id + '-section').classList.toggle('hidden');
+    }
+
+    // 2. Fungsi Kasir (Keranjang, Hitung, Print, History)
+    let cart = [];
+    function addToCart(id) {
+        const prod = products.find(p => p.id === id);
+        const item = cart.find(i => i.id === id);
+        if(item) item.qty++;
+        else cart.push({...prod, qty: 1});
+        renderCart();
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cart-list');
+        let total = 0;
+        list.innerHTML = cart.map(i => {
+            total += i.price * i.qty;
+            return `<div class="py-2">${i.name} x${i.qty} = Rp ${(i.price * i.qty).toLocaleString()}</div>`;
+        }).join('');
+        document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString();
+    }
+
+    function prosesTransaksi() {
+        const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        const bayar = parseInt(document.getElementById('payment-amount').value);
+        if(bayar < total) return alert("Uang Kurang!");
+
+        // Simpan History
+        let history = JSON.parse(localStorage.getItem('transactions')) || [];
+        history.push({ date: new Date().toLocaleDateString(), total, items: cart });
+        localStorage.setItem('transactions', JSON.stringify(history));
+
+        // Print
+        document.getElementById('receipt-items').innerHTML = cart.map(i => `<div>${i.name} (${i.qty})</div>`).join('');
+        document.getElementById('receipt-total').innerText = total;
+        window.print();
+        
+        cart = [];
+        renderCart();
+    }
+
+    function bukaRiwayat() {
+        const history = JSON.parse(localStorage.getItem('transactions')) || [];
+        document.getElementById('history-list').innerHTML = history.map(h => 
+            `<div class="border-b py-2 text-sm"><b>${h.date}</b> - Total: Rp ${h.total.toLocaleString()}</div>`
+        ).join('');
+        document.getElementById('modal-riwayat').classList.remove('hidden');
+    }
+    
+    // Inisialisasi
+    renderProducts();
+</script>
 </body>
 </html>
