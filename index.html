@@ -6,10 +6,21 @@
     <title>Aplikasi Kasir Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Pengaturan khusus untuk Print Struk */
         @media print {
-            body * { visibility: hidden; }
-            #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
         }
     </style>
 </head>
@@ -20,85 +31,121 @@
     <header class="bg-blue-600 text-white p-4 rounded-lg shadow-md mb-6 flex justify-between items-center">
         <h1 class="text-xl font-bold">POS Kasir & Manajemen Produk</h1>
         <div>
-            <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2">⚙️ Kelola Produk</button>
-            <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm">📜 Riwayat</button>
+            <button onclick="toggleSection('admin')" class="bg-white text-blue-600 px-3 py-1 rounded text-sm mr-2 font-semibold">⚙️ Kelola Produk</button>
+            <button onclick="bukaRiwayat()" class="bg-white text-blue-600 px-3 py-1 rounded text-sm font-semibold">📜 Riwayat</button>
         </div>
     </header>
 
-    <!-- Admin Section (Hidden by Default) -->
+    <!-- Admin Section -->
     <div id="admin-section" class="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
         <h2 class="text-lg font-bold mb-4">Tambah Produk Baru</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input type="text" id="prod-name" placeholder="Nama Produk" class="border p-2 rounded">
-            <input type="number" id="prod-price" placeholder="Harga" class="border p-2 rounded">
-            <button onclick="tambahProduk()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Simpan Produk</button>
+            <input type="number" id="prod-price" placeholder="Harga (Angka Saja)" class="border p-2 rounded">
+            <button onclick="tambahProduk()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold">Simpan Produk</button>
         </div>
     </div>
 
     <!-- Main Content -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Daftar Menu -->
         <div class="md:col-span-2 bg-white p-4 rounded-lg shadow-md">
             <h2 class="text-lg font-bold mb-4">Daftar Menu</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="product-list"></div>
         </div>
 
-        <div class="bg-white p-4 rounded-lg shadow-md">
-            <h2 class="text-lg font-bold mb-2">Keranjang</h2>
-            <div id="cart-list" class="divide-y mb-4"></div>
-            <div class="border-t pt-2 font-bold text-lg">Total: <span id="cart-total">Rp 0</span></div>
-            <input type="number" id="payment-amount" placeholder="Bayar (Rp)" class="w-full border p-2 my-3 rounded" oninput="hitungKembalian()">
-            <div id="change-amount" class="mb-4 font-semibold">Kembali: Rp 0</div>
-            <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">Bayar & Print</button>
+        <!-- Keranjang -->
+        <div class="bg-white p-4 rounded-lg shadow-md flex flex-col justify-between">
+            <div>
+                <h2 class="text-lg font-bold mb-2">Keranjang</h2>
+                <div id="cart-list" class="divide-y mb-4 max-h-60 overflow-y-auto">
+                    <p class="text-gray-400 text-sm">Keranjang kosong</p>
+                </div>
+            </div>
+            
+            <div class="border-t pt-2">
+                <div class="font-bold text-lg mb-2 flex justify-between">
+                    <span>Total:</span>
+                    <span id="cart-total">Rp 0</span>
+                </div>
+                <input type="number" id="payment-amount" placeholder="Bayar (Rp)" class="w-full border p-2 mb-2 rounded" oninput="hitungKembalian()">
+                <div id="change-amount" class="mb-4 font-semibold text-sm text-gray-600">Kembali: Rp 0</div>
+                <button onclick="prosesTransaksi()" class="w-full bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">Bayar & Print</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal & Print Area sama seperti sebelumnya -->
+<!-- Modal Riwayat -->
 <div id="modal-riwayat" class="fixed inset-0 bg-black bg-opacity-50 hidden flex justify-center items-center p-4">
-    <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] overflow-y-auto" id="history-list"></div>
+    <div class="bg-white rounded-lg max-w-lg w-full p-6 max-h-[80vh] flex flex-col">
+        <h2 class="text-lg font-bold mb-4">Riwayat Transaksi</h2>
+        <div id="history-list" class="overflow-y-auto flex-grow divide-y mb-4"></div>
+        <button onclick="tutupRiwayat()" class="bg-gray-300 text-gray-700 py-2 rounded font-semibold">Tutup</button>
+    </div>
 </div>
 
-<div id="print-area" class="hidden p-4 max-w-[300px] mx-auto text-sm font-mono">
-    <h3 class="font-bold text-center">TOKO KASIR KU</h3>
+<!-- Area Struk Print (Tersembunyi secara normal) -->
+<div id="print-area" class="hidden p-4 max-w-[300px] mx-auto text-xs font-mono bg-white">
+    <div class="text-center mb-2">
+        <p class="font-bold text-sm">TOKO KASIR KITA</p>
+        <p class="text-[10px]" id="receipt-date"></p>
+    </div>
+    <div class="border-b border-dashed my-2"></div>
     <div id="receipt-items"></div>
-    <div class="border-t mt-2 pt-2">Total: <span id="receipt-total"></span></div>
+    <div class="border-b border-dashed my-2"></div>
+    <div class="flex justify-between font-bold">
+        <span>Total:</span>
+        <span id="receipt-total"></span>
+    </div>
+    <div class="flex justify-between">
+        <span>Bayar:</span>
+        <span id="receipt-pay"></span>
+    </div>
+    <div class="flex justify-between">
+        <span>Kembali:</span>
+        <span id="receipt-change"></span>
+    </div>
+    <div class="border-b border-dashed my-2"></div>
+    <p class="text-center text-[10px]">Terima Kasih Atas Kunjungan Anda!</p>
 </div>
 
 <script>
-    // 1. Manajamen Data Produk
     let products = JSON.parse(localStorage.getItem('myProducts')) || [
         { id: 1, name: "Kopi Hitam", price: 10000 },
         { id: 2, name: "Mie Goreng", price: 15000 }
     ];
 
+    let cart = [];
+
     function tambahProduk() {
         const name = document.getElementById('prod-name').value;
         const price = parseInt(document.getElementById('prod-price').value);
-        if(!name || !price) return alert("Isi data produk!");
+        if(!name || !price) return alert("Isi nama dan harga produk dengan benar!");
         
         products.push({ id: Date.now(), name, price });
         localStorage.setItem('myProducts', JSON.stringify(products));
         renderProducts();
         document.getElementById('prod-name').value = '';
         document.getElementById('prod-price').value = '';
+        alert("Produk berhasil ditambahkan!");
     }
 
     function renderProducts() {
         const list = document.getElementById('product-list');
         list.innerHTML = products.map(p => `
-            <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50">
-                <p class="font-bold">${p.name}</p>
-                <p class="text-blue-600 text-sm">Rp ${p.price.toLocaleString()}</p>
+            <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50 transition bg-white shadow-sm">
+                <p class="font-bold text-gray-800">${p.name}</p>
+                <p class="text-blue-600 text-sm font-semibold mt-1">Rp ${p.price.toLocaleString('id-ID')}</p>
             </div>
         `).join('');
     }
 
     function toggleSection(id) {
-        document.getElementById(id + '-section').classList.toggle('hidden');
+        const el = document.getElementById(id + '-section');
+        el.classList.toggle('hidden');
     }
 
-    // 2. Fungsi Kasir (Keranjang, Hitung, Print, History)
-    let cart = [];
     function addToCart(id) {
         const prod = products.find(p => p.id === id);
         const item = cart.find(i => i.id === id);
@@ -109,42 +156,111 @@
 
     function renderCart() {
         const list = document.getElementById('cart-list');
+        if(cart.length === 0) {
+            list.innerHTML = `<p class="text-gray-400 text-sm">Keranjang kosong</p>`;
+            document.getElementById('cart-total').innerText = 'Rp 0';
+            document.getElementById('change-amount').innerText = 'Kembali: Rp 0';
+            return;
+        }
+
         let total = 0;
         list.innerHTML = cart.map(i => {
-            total += i.price * i.qty;
-            return `<div class="py-2">${i.name} x${i.qty} = Rp ${(i.price * i.qty).toLocaleString()}</div>`;
+            let subtotal = i.price * i.qty;
+            total += subtotal;
+            return `
+                <div py-2 flex justify-between items-center text-sm py-2">
+                    <div>
+                        <p class="font-semibold">${i.name}</p>
+                        <p class="text-xs text-gray-500">Rp ${i.price.toLocaleString('id-ID')} x ${i.qty}</p>
+                    </div>
+                    <span class="font-bold">Rp ${subtotal.toLocaleString('id-ID')}</span>
+                </div>
+            `;
         }).join('');
-        document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString();
+        document.getElementById('cart-total').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        hitungKembalian();
+    }
+
+    function hitungKembalian() {
+        const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        const bayar = parseInt(document.getElementById('payment-amount').value) || 0;
+        const kembalian = bayar - total;
+        
+        const el = document.getElementById('change-amount');
+        if(kembalian >= 0) {
+            el.innerText = 'Kembali: Rp ' + kembalian.toLocaleString('id-ID');
+            el.className = "mb-4 font-semibold text-sm text-green-600";
+        } else {
+            el.innerText = 'Kurang: Rp ' + Math.abs(kembalian).toLocaleString('id-ID');
+            el.className = "mb-4 font-semibold text-sm text-red-600";
+        }
     }
 
     function prosesTransaksi() {
+        if(cart.length === 0) return alert("Keranjang masih kosong!");
+        
         const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-        const bayar = parseInt(document.getElementById('payment-amount').value);
-        if(bayar < total) return alert("Uang Kurang!");
+        const bayar = parseInt(document.getElementById('payment-amount').value) || 0;
 
-        // Simpan History
+        if(bayar < total) return alert("Uang pembayaran kurang!");
+
+        const kembalian = bayar - total;
+        const tanggal = new Date().toLocaleString('id-ID');
+
+        // Simpan ke Riwayat LocalStorage
         let history = JSON.parse(localStorage.getItem('transactions')) || [];
-        history.push({ date: new Date().toLocaleDateString(), total, items: cart });
+        history.unshift({ date: tanggal, total, items: [...cart] });
         localStorage.setItem('transactions', JSON.stringify(history));
 
-        // Print
-        document.getElementById('receipt-items').innerHTML = cart.map(i => `<div>${i.name} (${i.qty})</div>`).join('');
-        document.getElementById('receipt-total').innerText = total;
+        // Set Data untuk Area Print
+        document.getElementById('receipt-date').innerText = tanggal;
+        document.getElementById('receipt-items').innerHTML = cart.map(i => `
+            <div class="flex justify-between">
+                <span>${i.name} (${i.qty}x)</span>
+                <span>Rp ${(i.price * i.qty).toLocaleString('id-ID')}</span>
+            </div>
+        `).join('');
+        document.getElementById('receipt-total').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        document.getElementById('receipt-pay').innerText = 'Rp ' + bayar.toLocaleString('id-ID');
+        document.getElementById('receipt-change').innerText = 'Rp ' + kembalian.toLocaleString('id-ID');
+
+        // Panggil Print Browser
         window.print();
-        
+
+        // Reset Keranjang & Input Pembayaran
         cart = [];
+        document.getElementById('payment-amount').value = '';
         renderCart();
     }
 
     function bukaRiwayat() {
         const history = JSON.parse(localStorage.getItem('transactions')) || [];
-        document.getElementById('history-list').innerHTML = history.map(h => 
-            `<div class="border-b py-2 text-sm"><b>${h.date}</b> - Total: Rp ${h.total.toLocaleString()}</div>`
-        ).join('');
+        const list = document.getElementById('history-list');
+        
+        if(history.length === 0) {
+            list.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm">Belum ada riwayat transaksi.</p>`;
+        } else {
+            list.innerHTML = history.map(h => {
+                let detailItem = h.items.map(i => `${i.name} (${i.qty}x)`).join(', ');
+                return `
+                    <div class="py-2 text-sm">
+                        <div class="flex justify-between font-bold">
+                            <span>${h.date}</span>
+                            <span class="text-blue-600">Rp ${h.total.toLocaleString('id-ID')}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">Item: ${detailItem}</p>
+                    </div>
+                `;
+            }).join('');
+        }
         document.getElementById('modal-riwayat').classList.remove('hidden');
     }
-    
-    // Inisialisasi
+
+    function tutupRiwayat() {
+        document.getElementById('modal-riwayat').classList.add('hidden');
+    }
+
+    // Jalankan saat pertama kali buka
     renderProducts();
 </script>
 </body>
