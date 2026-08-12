@@ -18,13 +18,23 @@
         </div>
     </header>
 
-    <!-- Admin Section -->
+    <!-- Admin Section (Tambah & Hapus Produk) -->
     <div id="admin-section" class="bg-white p-4 rounded-lg shadow-md mb-6 hidden">
-        <h2 class="text-lg font-bold mb-4">Tambah Produk Baru</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h2 class="text-lg font-bold mb-4">Manajemen Produk</h2>
+        
+        <!-- Form Tambah -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <input type="text" id="prod-name" placeholder="Nama Produk" class="border p-2 rounded">
             <input type="number" id="prod-price" placeholder="Harga (Angka Saja)" class="border p-2 rounded">
             <button onclick="tambahProduk()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 font-bold">Simpan Produk</button>
+        </div>
+
+        <hr class="mb-4">
+
+        <!-- Daftar Produk untuk Dihapus -->
+        <h3 class="text-md font-semibold mb-2">Daftar Produk Saat Ini:</h3>
+        <div id="admin-product-list" class="divide-y max-h-40 overflow-y-auto border rounded p-2 bg-gray-50">
+            <!-- List produk untuk manajemen muncul di sini -->
         </div>
     </div>
 
@@ -94,18 +104,47 @@
         alert("Produk berhasil ditambahkan!");
     }
 
+    // Fungsi Hapus Produk
+    function hapusProduk(id) {
+        if(confirm("Yakin ingin menghapus produk ini?")) {
+            products = products.filter(p => p.id !== id);
+            localStorage.setItem('myProducts', JSON.stringify(products));
+            renderProducts();
+        }
+    }
+
     function renderProducts() {
         const list = document.getElementById('product-list');
+        const adminList = document.getElementById('admin-product-list');
+        
+        // Render menu kasir utama
         list.innerHTML = products.map(p => `
-            <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50 transition bg-white shadow-sm">
+            <div onclick="addToCart(${p.id})" class="border p-3 rounded cursor-pointer hover:bg-blue-50 transition bg-white shadow-sm flex flex-col justify-between">
                 <p class="font-bold text-gray-800">${p.name}</p>
                 <p class="text-blue-600 text-sm font-semibold mt-1">Rp ${p.price.toLocaleString('id-ID')}</p>
             </div>
         `).join('');
+
+        // Render daftar di menu kelola produk (admin)
+        if(products.length === 0) {
+            adminList.innerHTML = `<p class="text-gray-400 text-sm py-2 text-center">Belum ada produk.</p>`;
+        } else {
+            adminList.innerHTML = products.map(p => `
+                py-2 flex justify-between items-center text-sm py-2
+                <div class="flex justify-between items-center text-sm py-2">
+                    <span><b>${p.name}</b> - Rp ${p.price.toLocaleString('id-ID')}</span>
+                    <button onclick="hapusProduk(${p.id})" class="bg-red-500 text-white px-2.5 py-1 rounded text-xs font-bold hover:bg-red-600">Hapus</button>
+                </div>
+            `).join('');
+        }
     }
 
     function toggleSection(id) {
-        document.getElementById(id + '-section').classList.toggle('hidden');
+        const section = document.getElementById(id + '-section');
+        section.classList.toggle('hidden');
+        if(!section.classList.contains('hidden')) {
+            renderProducts(); // Refresh list admin saat dibuka
+        }
     }
 
     function addToCart(id) {
@@ -176,7 +215,6 @@
         history.unshift(transaksiBaru);
         localStorage.setItem('transactions', JSON.stringify(history));
 
-        // Kirim perintah cetak langsung ke aplikasi RawBT
         kirimKePrinterRawBT(transaksiBaru);
 
         cart = [];
@@ -184,7 +222,6 @@
         renderCart();
     }
 
-    // Fungsi Format Struk Text Murni untuk Printer Thermal via RawBT
     function kirimKePrinterRawBT(trx) {
         let struk = "     TOKO KASIR KITA     \n";
         struk += "================================\n";
@@ -207,7 +244,6 @@
         struk += "================================\n";
         struk += "   Terima Kasih Atas Belanjanya \n\n\n";
 
-        // Encode teks ke format URL Intent RawBT
         let base64Struk = btoa(unescape(encodeURIComponent(struk)));
         window.location.href = "rawbt:base64," + base64Struk;
     }
