@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Kasir Warung</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #219150;
+        }
+        button.btn-danger {
+            background-color: #e74c3c;
+            padding: 5px 10px;
+            width: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .total-box {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 15px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏪 Kasir Warung</h1>
+
+    <div class="container">
+        <!-- FORM KELOLA BARANG DINAMIS -->
+        <div class="card">
+            <h2>1. Kelola Data Barang</h2>
+            <form id="formBarang">
+                <label>Nama Barang:</label>
+                <input type="text" id="namaBarang" placeholder="Contoh: Kopi Hitam" required>
+                
+                <label>Harga (Rp):</label>
+                <input type="number" id="hargaBarang" placeholder="Contoh: 3000" required>
+                
+                <button type="submit">Tambah / Simpan Barang</button>
+            </form>
+
+            <h3>Daftar Barang Tersimpan</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Harga</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelStokBarang"></tbody>
+            </table>
+        </div>
+
+        <!-- FORM TRANSAKSI KASIR -->
+        <div class="card">
+            <h2>2. Transaksi Kasir</h2>
+            <label>Pilih Barang:</label>
+            <select id="pilihBarang">
+                <option value="">-- Pilih Barang --</option>
+            </select>
+
+            <label>Jumlah (Qty):</label>
+            <input type="number" id="jumlahBarang" value="1" min="1">
+
+            <button type="button" onclick="tambahKeKeranjang()">Tambah ke Keranjang</button>
+
+            <h3>Keranjang Belanja</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Barang</th>
+                        <th>Qty</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelKeranjang"></tbody>
+            </table>
+
+            <div class="total-box">Total: Rp <span id="textTotal">0</span></div>
+
+            <hr style="margin: 20px 0;">
+
+            <label>Uang Pembayar (Rp):</label>
+            <input type="number" id="uangBayar" placeholder="Masukkan nominal uang" oninput="hitungKembalian()">
+
+            <div class="total-box">Kembalian: Rp <span id="textKembalian">0</span></div>
+            
+            <button type="button" style="background-color: #e67e22; margin-top: 15px;" onclick="selesaiTransaksi()">Selesai Transaksi</button>
+        </div>
+    </div>
+
+    <script>
+        // Inisialisasi data dari LocalStorage
+        let dataBarang = JSON.parse(localStorage.getItem('warung_barang')) || [];
+        let keranjang = [];
+        let totalBelanja = 0;
+
+        // Fungsi Menampilkan Daftar Barang di Tabel & Dropdown
+        function tampilkanBarang() {
+            const tabelStok = document.getElementById('tabelStokBarang');
+            const dropdown = document.getElementById('pilihBarang');
+            
+            tabelStok.innerHTML = '';
+            dropdown.innerHTML = '<option value="">-- Pilih Barang --</option>';
+
+            dataBarang.forEach((item, index) => {
+                // Tampilkan ke tabel stok
+                tabelStok.innerHTML += `
+                    <tr>
+                        <td>${item.nama}</td>
+                        <td>Rp ${item.harga.toLocaleString()}</td>
+                        <td><button class="btn-danger" onclick="hapusBarang(${index})">Hapus</button></td>
+                    </tr>
+                `;
+
+                // Tampilkan ke dropdown kasir
+                dropdown.innerHTML += `<option value="${index}">${item.nama} - Rp ${item.harga.toLocaleString()}</option>`;
+            });
+
+            // Simpan perubahan ke LocalStorage browser
+            localStorage.setItem('warung_barang', JSON.stringify(dataBarang));
+        }
+
+        // Fungsi Tambah Barang Baru
+        document.getElementById('formBarang').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nama = document.getElementById('namaBarang').value;
+            const harga = parseInt(document.getElementById('hargaBarang').value);
+
+            dataBarang.push({ nama: nama, harga: harga });
+            tampilkanBarang();
+
+            // Reset Input Form
+            document.getElementById('namaBarang').value = '';
+            document.getElementById('hargaBarang').value = '';
+        });
+
+        // Fungsi Hapus Barang
+        function hapusBarang(index) {
+            dataBarang.splice(index, 1);
+            tampilkanBarang();
+        }
+
+        // Fungsi Tambah Barang ke Keranjang Belanja
+        function tambahKeKeranjang() {
+            const indexBarang = document.getElementById('pilihBarang').value;
+            const qty = parseInt(document.getElementById('jumlahBarang').value);
+
+            if (indexBarang === "" || qty <= 0) {
+                alert("Silakan pilih barang dan jumlah yang valid!");
+                return;
+            }
+
+            const barangDipilih = dataBarang[indexBarang];
+            const subtotal = barangDipilih.harga * qty;
+
+            keranjang.push({
+                nama: barangDipilih.nama,
+                harga: barangDipilih.harga,
+                qty: qty,
+                subtotal: subtotal
+            });
+
+            tampilkanKeranjang();
+        }
+
+        // Fungsi Tampilkan Isi Keranjang
+        function tampilkanKeranjang() {
+            const tabelKeranjang = document.getElementById('tabelKeranjang');
+            tabelKeranjang.innerHTML = '';
+            totalBelanja = 0;
+
+            keranjang.forEach((item) => {
+                totalBelanja += item.subtotal;
+                tabelKeranjang.innerHTML += `
+                    <tr>
+                        <td>${item.nama}</td>
+                        <td>${item.qty}</td>
+                        <td>Rp ${item.subtotal.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('textTotal').innerText = totalBelanja.toLocaleString();
+            hitungKembalian();
+        }
+
+        // Fungsi Hitung Kembalian Otomatis
+        function hitungKembalian() {
+            const uangBayar = parseInt(document.getElementById('uangBayar').value) || 0;
+            const kembalian = uangBayar - totalBelanja;
+            document.getElementById('textKembalian').innerText = kembalian >= 0 ? kembalian.toLocaleString() : "Uang Kurang";
+        }
+
+        // Fungsi Selesai Transaksi / Reset Keranjang
+        function selesaiTransaksi() {
+            if (keranjang.length === 0) {
+                alert("Keranjang masih kosong!");
+                return;
+            }
+            alert("Transaksi Berhasil!");
+            keranjang = [];
+            document.getElementById('uangBayar').value = '';
+            tampilkanKeranjang();
+        }
+
+        // Jalankan fungsi tampilkan barang saat aplikasi pertama dibuka
+        tampilkanBarang();
+    </script>
+</body>
+</html>
